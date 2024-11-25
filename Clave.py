@@ -1,62 +1,77 @@
 import streamlit as st
 import re
 
-def evaluar_contrasena(contrasena):
-    """Evalúa la fortaleza de una contraseña y devuelve un mensaje.
-
-    Args:
-        contrasena (str): La contraseña a evaluar.
-
-    Returns:
-        str: Un mensaje indicando si la contraseña es fuerte o débil, y sugerencias.
+# Función para verificar la fortaleza de la contraseña
+def evaluar_contraseña(password):
     """
+    Evalúa la fortaleza de una contraseña según los siguientes criterios:
+    - Al menos 8 caracteres.
+    - Al menos una letra mayúscula.
+    - Al menos una letra minúscula.
+    - Al menos un número.
+    - Al menos un carácter especial.
+    
+    Parámetros:
+        password (str): La contraseña que se va a evaluar.
+    
+    Retorna:
+        dict: Un diccionario con el estado de los criterios y sugerencias.
+    """
+    criterios = {
+        'Longitud mínima (8 caracteres)': len(password) >= 8,
+        'Contiene mayúsculas': re.search(r'[A-Z]', password) is not None,
+        'Contiene minúsculas': re.search(r'[a-z]', password) is not None,
+        'Contiene números': re.search(r'[0-9]', password) is not None,
+        'Contiene caracteres especiales': re.search(r'[!@#$%^&*(),.?":{}|<>]', password) is not None
+    }
 
-    # Expresiones regulares para cada criterio
-    longitud = re.compile(r".{8,}")
-    mayuscula = re.compile(r"[A-Z]")
-    minuscula = re.compile(r"[a-z]")
-    numero = re.compile(r"\d")
-    especial = re.compile(r"[^\w\s]")
-
-    # Inicializar variables
-    fuerte = True
+    # Sugerencias basadas en los criterios que no se cumplan
     sugerencias = []
+    if len(password) < 8:
+        sugerencias.append('La contraseña debe tener al menos 8 caracteres.')
+    if not re.search(r'[A-Z]', password):
+        sugerencias.append('La contraseña debe contener al menos una letra mayúscula.')
+    if not re.search(r'[a-z]', password):
+        sugerencias.append('La contraseña debe contener al menos una letra minúscula.')
+    if not re.search(r'[0-9]', password):
+        sugerencias.append('La contraseña debe contener al menos un número.')
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        sugerencias.append('La contraseña debe contener al menos un carácter especial.')
 
-    # Evaluar cada criterio
-    if not longitud.search(contrasena):
-        fuerte = False
-        sugerencias.append("Debe tener al menos 8 caracteres.")
-    if not mayuscula.search(contrasena):
-        fuerte = False
-        sugerencias.append("Debe incluir al menos una letra mayúscula.")
-    if not minuscula.search(contrasena):
-        fuerte = False
-        sugerencias.append("Debe incluir al menos una letra minúscula.")
-    if not numero.search(contrasena):
-        fuerte = False
-        sugerencias.append("Debe incluir al menos un número.")
-    if not especial.search(contrasena):
-        fuerte = False
-        sugerencias.append("Debe incluir al menos un carácter especial.")
-
-    # Mensaje final
-    if fuerte:
-        return "La contraseña es fuerte. ¡Excelente!"
-    else:
-        return "La contraseña es débil. Sugerencias: " + ", ".join(sugerencias)
+    return criterios, sugerencias
 
 # Interfaz de usuario con Streamlit
-st.title("Evaluador de Contraseñas ")
-st.subheader("Aplicación creada por Miguel Ángel Villarraga Franco")
-st.markdown("**¿Qué tan segura es tu contraseña?**")
+def main():
+    st.title('Evaluador de Fortaleza de Contraseña')
+    st.write('Ingrese su contraseña para evaluar su fortaleza.')
+    
+    # Entrada de contraseña
+    password = st.text_input('Contraseña:', type='password')
 
-contrasena = st.text_input("Ingrese su contraseña", type="password")
-if st.button("Evaluar"):
-    resultado = evaluar_contrasena(contrasena)
-    st.success(resultado) if fuerte else st.warning(resultado)
+    if password:
+        # Evaluar la contraseña
+        criterios, sugerencias = evaluar_contraseña(password)
+        
+        # Mostrar resultados
+        st.subheader('Criterios de Seguridad:')
+        for criterio, valido in criterios.items():
+            if valido:
+                st.markdown(f'✔️ **{criterio}**')
+            else:
+                st.markdown(f'❌ **{criterio}**')
 
-# Información adicional
-st.info("Una contraseña fuerte incluye una combinación de letras mayúsculas y minúsculas, números y caracteres especiales.")
-st.write("**Consejos adicionales:**")
-st.write("- Evita usar contraseñas obvias como fechas de nacimiento o nombres.")
-st.write("- Utiliza un gestor de contraseñas para almacenar tus contraseñas de forma segura.")
+        # Mostrar sugerencias
+        if sugerencias:
+            st.subheader('Sugerencias para mejorar la contraseña:')
+            for sugerencia in sugerencias:
+                st.markdown(f'- {sugerencia}')
+        else:
+            st.markdown('🎉 ¡Tu contraseña es segura!')
+
+    # Información adicional
+    st.markdown("---")
+    st.write("Programado por Miguel Angel Villarraga Franco")
+
+# Ejecutar la aplicación
+if __name__ == "__main__":
+    main()
