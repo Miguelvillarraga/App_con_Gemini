@@ -1,60 +1,100 @@
 import pandas as pd
 import re
+import streamlit as st
+from datetime import datetime
+from io import BytesIO
 
-# Función para procesar el archivo CSV y extraer la información relevante
-def procesar_datos(input_file):
-    # Cargar el archivo CSV en un DataFrame de pandas
-    df = pd.read_csv(input_file, header=None)
-    
-    # Definir las expresiones regulares para cada campo
-    regex_serie = r'^\d{6,8}$'  # Número de serie del producto (6-8 dígitos)
-    regex_nombre_producto = r'^[A-Za-z\s]+$'  # Nombre del producto (solo letras y espacios)
-    regex_valor = r'^\d+(\.\d{1,2})?$'  # Valor del producto (números con hasta 2 decimales)
-    regex_fecha = r'\d{2}/\d{2}/\d{2}'  # Fecha de compra (DD/MM/YY)
-    regex_email = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'  # Correo electrónico
-    regex_telefono = r'^\+?\d{1,3}?[-. \(\)]?\(?\d{1,4}?\)?[-. \(\)]?\d{1,4}[-. \(\)]?\d{1,4}$'  # Teléfono
+# Validaciones con expresiones regulares
+def validar_email(email):
+    patron_email = r'^[a-zA-Z0-9_.+-]+@[a-zAzam-9-]+\.[a-zA-Z0-9-.]+$'
+    return bool(re.match(patron_email, email))
 
-    # Listas para almacenar los datos válidos
-    valid_data = []
+def validar_telefono(telefono):
+    patron_telefono = r'^\+57 \d{9}$'
+    return bool(re.match(patron_telefono, telefono))
 
-    # Recorrer cada fila del DataFrame
-    for index, row in df.iterrows():
-        serie_valida = bool(re.match(regex_serie, str(row[0])))
-        nombre_valido = bool(re.match(regex_nombre_producto, str(row[1])))
-        valor_valido = bool(re.match(regex_valor, str(row[2])))
-        fecha_valida = bool(re.match(regex_fecha, str(row[3])))
-        email_valido = bool(re.match(regex_email, str(row[4])))
-        telefono_valido = bool(re.match(regex_telefono, str(row[5])))
+def validar_fecha(fecha):
+    patron_fecha = r'^\d{2}/\d{2}/\d{2}$'
+    return bool(re.match(patron_fecha, fecha))
 
-        # Verificar si todos los campos son válidos
-        if serie_valida and nombre_valido and valor_valido and fecha_valida and email_valido and telefono_valido:
-            valid_data.append([row[0], row[1], row[2], row[3], row[4], row[5]])
+def validar_valor(valor):
+    try:
+        float(valor)
+        return True
+    except ValueError:
+        return False
 
-    return valid_data
+def procesar_archivo(csv_file):
+    try:
+        # Leer el archivo CSV, aquí se asume que la primera columna es serie y la segunda es el primer nombre, etc.
+        df = pd.read_csv(csv_file, header=None)
+        st.write("Datos cargados correctamente:")
+        st.write(df.head())
 
-# Función para generar el archivo Excel con xlsxwriter
-def generar_excel(valid_data, output_file):
-    # Crear un DataFrame con los datos válidos
-    df = pd.DataFrame(valid_data, columns=['Número de serie', 'Nombre del producto', 'Valor', 'Fecha de compra', 'Correo electrónico', 'Teléfono'])
+        # Convertir el DataFrame a una lista de texto para procesar línea por línea
+        lineas = df.astype(str).apply(lambda x: ','.join(x), axis=1).tolist()
 
-    # Guardar los datos en un archivo Excel utilizando xlsxwriter
-    with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
+        # Listas para almacenar los resultados
+        datos_validos = []
+
+        # Procesar cada línea
+        for linea in lineas:
+            # Buscar los campos en la línea con regex
+            email = re.search(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', linea)
+            telefono = re.search(r'\+57 \d{9}', linea)
+            fecha = re.search(r'\d{2}/\d{2}/\d{2}', linea)
+            valor = re.search(r'\b\d+(\.\d+)?\b', linea)
+            nombre1 = re.search(r'\b[A-Z][a-z]+(?: [A-Z][a-z]+)*\b', linea)  # Primer nombre
+            nombre2 = re.search(r'\b[A-Z][a-z]+(?: [A-Z][a-z]+)*\b', linea)  # Segundo nombre
+            
+            if email and telefono and fecha and valor and nombre1 and nombre2:
+                datos_validos.append({
+                    'Correo electrónico': email.group(),
+                    'Nombre cliente 1': nombre1.group(),
+                    'Nombre cliente 2': nombre2.group(),
+                    'Teléfono': telefono.group(),
+                    'Fecha de compra': fecha.group(),
+                    'Valor': valor.group()
+                })
+
+        return datos_validos
+
+    except Exception as e:
+        st.error(f"Error procesando el archivo: {e}")
+        return []
+
+def generar_excel(datos_validos):
+    df = pd.DataFrame(datos_validos)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Productos')
+    output.seek(0)
+    return output
 
-# Función principal
 def main():
-    input_file = 'regex_productos.csv'  # Nombre del archivo CSV
-    output_file = 'productos_validos.xlsx'  # Nombre del archivo Excel de salida
-    
-    # Procesar los datos
-    valid_data = procesar_datos(input_file)
-    
-    if valid_data:
-        # Generar el archivo Excel si hay datos válidos
-        generar_excel(valid_data, output_file)
-        print(f"Archivo generado correctamente: {output_file}")
-    else:
-        print("No se encontraron datos válidos.")
+    st.title('Validador y Exportador de Productos y Contactos')
+    st.write('Sube un archivo CSV con datos para validarlos y exportarlos.')
 
-if __name__ == '__main__':
+    csv_file = st.file_uploader("Cargar archivo CSV", type=["csv"])
+    if csv_file:
+        datos_validos = procesar_archivo(csv_file)
+        
+        if datos_validos:
+            st.write("Datos válidos procesados:")
+            st.write(pd.DataFrame(datos_validos))
+            
+            excel_file = generar_excel(datos_validos)
+            st.download_button(
+                label="Descargar archivo Excel",
+                data=excel_file,
+                file_name="productos_clientes_validos.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.warning("No se encontraron datos válidos en el archivo.")
+
+    st.markdown("---")
+    st.write("Programado por Miguel Angel Villarraga Franco")
+
+if __name__ == "__main__":
     main()
