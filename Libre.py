@@ -38,7 +38,7 @@ def main():
     """)
 
     # Ingreso manual de la longitud de la contraseña
-    longitud = st.number_input("Longitud de la contraseña:", min_value=8, max_value=32, value=12)
+    longitud = st.number_input("Longitud de la contraseña:", min_value=8, max_value=16, value=12)
     
     # Opciones de inclusión
     incluir_mayusculas = st.checkbox("Incluir letras mayúsculas")
@@ -57,6 +57,7 @@ def main():
     st.write("""
     **Consejo:** Usa contraseñas largas (más de 12 caracteres) y asegúrate de incluir una mezcla de letras mayúsculas, minúsculas, números y caracteres especiales para mayor seguridad.
     """)
-
+    st.markdown("---")
+    st.write("Programado por Miguel Angel Villarraga Franco")
 if __name__ == "__main__":
     main()
