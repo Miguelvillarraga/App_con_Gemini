@@ -6,7 +6,7 @@ from io import BytesIO
 
 # Validaciones con expresiones regulares
 def validar_email(email):
-    patron_email = r'^[a-zA-Z0-9_.+-]+@[a-zAzam-9-]+\.[a-zA-Z0-9-.]+$'
+    patron_email = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
     return bool(re.match(patron_email, email))
 
 def validar_telefono(telefono):
@@ -26,7 +26,7 @@ def validar_valor(valor):
 
 def procesar_archivo(csv_file):
     try:
-        # Leer el archivo CSV, aquí se asume que la primera columna es serie y la segunda es el primer nombre, etc.
+        # Leer el archivo CSV
         df = pd.read_csv(csv_file, header=None)
         st.write("Datos cargados correctamente:")
         st.write(df.head())
@@ -44,14 +44,13 @@ def procesar_archivo(csv_file):
             telefono = re.search(r'\+57 \d{9}', linea)
             fecha = re.search(r'\d{2}/\d{2}/\d{2}', linea)
             valor = re.search(r'\b\d+(\.\d+)?\b', linea)
-            nombre1 = re.search(r'\b[A-Z][a-z]+(?: [A-Z][a-z]+)*\b', linea)  # Primer nombre
-            nombre2 = re.search(r'\b[A-Z][a-z]+(?: [A-Z][a-z]+)*\b', linea)  # Segundo nombre
-            
-            if email and telefono and fecha and valor and nombre1 and nombre2:
+            nombre = re.findall(r'\b[A-Z][a-z]+(?: [A-Z][a-z]+)*\b', linea)
+
+            # Verificar que haya al menos dos nombres en la fila
+            if email and telefono and fecha and valor and len(nombre) >= 2:
                 datos_validos.append({
                     'Correo electrónico': email.group(),
-                    'Nombre cliente 1': nombre1.group(),
-                    'Nombre cliente 2': nombre2.group(),
+                    'Nombre cliente': ' '.join(nombre),  # Unir los nombres si hay más de uno
                     'Teléfono': telefono.group(),
                     'Fecha de compra': fecha.group(),
                     'Valor': valor.group()
@@ -66,7 +65,8 @@ def procesar_archivo(csv_file):
 def generar_excel(datos_validos):
     df = pd.DataFrame(datos_validos)
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+    # Usar openpyxl como motor para generar el archivo Excel
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Productos')
     output.seek(0)
     return output
