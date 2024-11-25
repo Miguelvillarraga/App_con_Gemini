@@ -1,98 +1,69 @@
 import pandas as pd
 import re
-import streamlit as st
-from datetime import datetime
+from openpyxl import Workbook
 from io import BytesIO
 
-# Validaciones con expresiones regulares
-def validar_email(email):
-    patron_email = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-    return bool(re.match(patron_email, email))
-
-def validar_telefono(telefono):
-    patron_telefono = r'^\+57 \d{9}$'
-    return bool(re.match(patron_telefono, telefono))
-
-def validar_fecha(fecha):
-    patron_fecha = r'^\d{2}/\d{2}/\d{2}$'
-    return bool(re.match(patron_fecha, fecha))
-
-def validar_valor(valor):
-    try:
-        float(valor)
-        return True
-    except ValueError:
+# Función para validar los datos usando regex
+def validar_datos(row):
+    # Validar correo electrónico
+    email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+    if not re.match(email_regex, row['Correo electrónico']):
         return False
+    
+    # Validar teléfono (formato +57 y número)
+    telefono_regex = r'^\+57 \d{10}$'
+    if not re.match(telefono_regex, row['Teléfono']):
+        return False
+    
+    # Validar fecha en formato DD/MM/YY
+    fecha_regex = r'^\d{2}/\d{2}/\d{2}$'
+    if not re.match(fecha_regex, row['Fecha de compra']):
+        return False
+    
+    return True
 
-def procesar_archivo(csv_file):
-    try:
-        # Leer el archivo CSV
-        df = pd.read_csv(csv_file, header=None)
-        st.write("Datos cargados correctamente:")
-        st.write(df.head())
-
-        # Convertir el DataFrame a una lista de texto para procesar línea por línea
-        lineas = df.astype(str).apply(lambda x: ','.join(x), axis=1).tolist()
-
-        # Listas para almacenar los resultados
-        datos_validos = []
-
-        # Procesar cada línea
-        for linea in lineas:
-            # Buscar los campos en la línea con regex
-            email = re.search(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', linea)
-            telefono = re.search(r'\+57 \d{9}', linea)
-            fecha = re.search(r'\d{2}/\d{2}/\d{2}', linea)
-            valor = re.search(r'\b\d+(\.\d+)?\b', linea)
-            nombre = re.search(r'\b[A-Z][a-z]+(?: [A-Z][a-z]+)*\b', linea)
-
-            if email and telefono and fecha and valor and nombre:
-                datos_validos.append({
-                    'Correo electrónico': email.group(),
-                    'Nombre cliente': nombre.group(),
-                    'Teléfono': telefono.group(),
-                    'Fecha de compra': fecha.group(),
-                    'Valor': valor.group()
-                })
-
-        return datos_validos
-
-    except Exception as e:
-        st.error(f"Error procesando el archivo: {e}")
-        return []
-
+# Función para generar el archivo Excel
 def generar_excel(datos_validos):
+    # Convertir los datos válidos a un DataFrame de pandas
     df = pd.DataFrame(datos_validos)
+
+    # Crear un archivo Excel en memoria
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Productos')
+
+    # Guardar el archivo Excel
     output.seek(0)
     return output
 
-def main():
-    st.title('Validador y Exportador de Productos y Contactos')
-    st.write('Sube un archivo CSV con datos para validarlos y exportarlos.')
+# Función principal de la aplicación
+def procesar_archivo_csv():
+    # Leer el archivo CSV (el archivo debe estar en el mismo directorio o proporcionar la ruta completa)
+    archivo_csv = 'regex_productos.csv'
+    df = pd.read_csv(archivo_csv)
 
-    csv_file = st.file_uploader("Cargar archivo CSV", type=["csv"])
-    if csv_file:
-        datos_validos = procesar_archivo(csv_file)
-        
-        if datos_validos:
-            st.write("Datos válidos procesados:")
-            st.write(pd.DataFrame(datos_validos))
-            
-            excel_file = generar_excel(datos_validos)
-            st.download_button(
-                label="Descargar archivo Excel",
-                data=excel_file,
-                file_name="productos_clientes_validos.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-        else:
-            st.warning("No se encontraron datos válidos en el archivo.")
+    # Filtrar los datos válidos
+    datos_validos = []
+    for _, row in df.iterrows():
+        if validar_datos(row):
+            datos_validos.append({
+                'Número de serie del producto': row['Número de serie del producto'],
+                'Nombre del producto': row['Nombre del producto'],
+                'Valor': row['Valor'],
+                'Fecha de compra': row['Fecha de compra'],
+                'Correo electrónico': row['Correo electrónico'],
+                'Teléfono': row['Teléfono']
+            })
+    
+    # Si hay datos válidos, generar el archivo Excel
+    if datos_validos:
+        excel_file = generar_excel(datos_validos)
+        with open('productos_validos.xlsx', 'wb') as f:
+            f.write(excel_file.read())
+        print("Archivo Excel generado exitosamente: productos_validos.xlsx")
+    else:
+        print("No se encontraron datos válidos en el archivo CSV.")
 
-    st.markdown("---")
-    st.write("Programado por Miguel Angel Villarraga Franco")
-
-if __name__ == "__main__":
-    main()
+# Ejecutar el procesamiento
+if __name__ == '__main__':
+    procesar_archivo_csv()
