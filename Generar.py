@@ -1,6 +1,5 @@
 import pandas as pd
 import re
-from openpyxl import Workbook
 
 # Función para procesar el archivo CSV y extraer la información relevante
 def procesar_datos(input_file):
@@ -33,13 +32,13 @@ def procesar_datos(input_file):
 
     return valid_data
 
-# Función para generar el archivo Excel
+# Función para generar el archivo Excel con xlsxwriter
 def generar_excel(valid_data, output_file):
     # Crear un DataFrame con los datos válidos
     df = pd.DataFrame(valid_data, columns=['Número de serie', 'Nombre del producto', 'Valor', 'Fecha de compra', 'Correo electrónico', 'Teléfono'])
 
-    # Guardar los datos en un archivo Excel
-    with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+    # Guardar los datos en un archivo Excel utilizando xlsxwriter
+    with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Productos')
 
 # Función principal
