@@ -3,7 +3,7 @@ import string
 import streamlit as st
 
 # Función para generar la contraseña aleatoria
-def generar_contraseña(longitud, incluir_mayusculas, incluir_numeros, incluir_especiales, incluir_letras_min):
+def generar_contraseña(longitud, incluir_mayusculas, incluir_numeros, incluir_especiales, incluir_letras_min, incluir_espacios, incluir_guiones):
     caracteres = ""
     
     # Siempre incluimos letras minúsculas
@@ -21,6 +21,14 @@ def generar_contraseña(longitud, incluir_mayusculas, incluir_numeros, incluir_e
     if incluir_especiales:
         caracteres += string.punctuation
     
+    # Opciones adicionales de caracteres
+    if incluir_espacios:
+        caracteres += " "
+    
+    if incluir_guiones:
+        caracteres += "-_"
+    
+    # Validación de que haya al menos una opción seleccionada
     if not caracteres:
         st.error("Debe seleccionar al menos una opción para generar una contraseña.")
         return ""
@@ -46,9 +54,13 @@ def main():
     incluir_especiales = st.checkbox("Incluir caracteres especiales (!@#$%^&*)")
     incluir_letras_min = st.checkbox("Incluir letras minúsculas", value=True)
     
+    # Opciones adicionales
+    incluir_espacios = st.checkbox("Incluir espacios")
+    incluir_guiones = st.checkbox("Incluir guiones (-_)")
+    
     # Generar contraseña al hacer clic en el botón
     if st.button("Generar Contraseña Segura"):
-        contraseña = generar_contraseña(longitud, incluir_mayusculas, incluir_numeros, incluir_especiales, incluir_letras_min)
+        contraseña = generar_contraseña(longitud, incluir_mayusculas, incluir_numeros, incluir_especiales, incluir_letras_min, incluir_espacios, incluir_guiones)
         if contraseña:
             st.subheader("Tu contraseña segura es:")
             st.write(contraseña)
@@ -57,7 +69,10 @@ def main():
     st.write("""
     **Consejo:** Usa contraseñas largas (más de 12 caracteres) y asegúrate de incluir una mezcla de letras mayúsculas, minúsculas, números y caracteres especiales para mayor seguridad.
     """)
-    st.markdown("---")
-    st.write("Programado por Miguel Angel Villarraga Franco")
+
+    st.write("""
+    **Programado por**: Miguel Angel Villarraga Franco
+    """)
+
 if __name__ == "__main__":
     main()
