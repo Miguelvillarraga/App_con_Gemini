@@ -2,17 +2,30 @@ import random
 import string
 import streamlit as st
 
-# Función para generar una contraseña aleatoria
-def generar_contraseña(longitud, incluir_mayusculas, incluir_numeros, incluir_especiales):
-    caracteres = string.ascii_lowercase  # Incluye letras minúsculas
+# Función para generar la contraseña aleatoria
+def generar_contraseña(longitud, incluir_mayusculas, incluir_numeros, incluir_especiales, incluir_letras_min):
+    caracteres = ""
     
+    # Siempre incluimos letras minúsculas
+    caracteres += string.ascii_lowercase if incluir_letras_min else ''
+    
+    # Añadimos mayúsculas si es necesario
     if incluir_mayusculas:
-        caracteres += string.ascii_uppercase  # Incluye letras mayúsculas
-    if incluir_numeros:
-        caracteres += string.digits  # Incluye números
-    if incluir_especiales:
-        caracteres += string.punctuation  # Incluye caracteres especiales
+        caracteres += string.ascii_uppercase
     
+    # Añadimos números si es necesario
+    if incluir_numeros:
+        caracteres += string.digits
+    
+    # Añadimos caracteres especiales si es necesario
+    if incluir_especiales:
+        caracteres += string.punctuation
+    
+    if not caracteres:
+        st.error("Debe seleccionar al menos una opción para generar una contraseña.")
+        return ""
+    
+    # Generamos la contraseña aleatoria
     contraseña = ''.join(random.choice(caracteres) for _ in range(longitud))
     return contraseña
 
@@ -23,21 +36,23 @@ def main():
     st.write("""
     **Genera una contraseña segura** para tu cuenta. Elige las opciones que desees para crear una contraseña con los requisitos de seguridad que prefieras.
     """)
-    
-    # Definir la longitud mínima
-    longitud = st.slider("Longitud de la contraseña:", min_value=8, max_value=20, value=12)
+
+    # Ingreso manual de la longitud de la contraseña
+    longitud = st.number_input("Longitud de la contraseña:", min_value=8, max_value=32, value=12)
     
     # Opciones de inclusión
     incluir_mayusculas = st.checkbox("Incluir letras mayúsculas")
     incluir_numeros = st.checkbox("Incluir números")
     incluir_especiales = st.checkbox("Incluir caracteres especiales (!@#$%^&*)")
+    incluir_letras_min = st.checkbox("Incluir letras minúsculas", value=True)
     
     # Generar contraseña al hacer clic en el botón
     if st.button("Generar Contraseña Segura"):
-        contraseña = generar_contraseña(longitud, incluir_mayusculas, incluir_numeros, incluir_especiales)
-        st.subheader("Tu contraseña segura es:")
-        st.write(contraseña)
-        st.write("**¡Copia y guarda tu contraseña!** Asegúrate de que sea segura y no la compartas.")
+        contraseña = generar_contraseña(longitud, incluir_mayusculas, incluir_numeros, incluir_especiales, incluir_letras_min)
+        if contraseña:
+            st.subheader("Tu contraseña segura es:")
+            st.write(contraseña)
+            st.write("**¡Copia y guarda tu contraseña!** Asegúrate de que sea segura y no la compartas.")
         
     st.write("""
     **Consejo:** Usa contraseñas largas (más de 12 caracteres) y asegúrate de incluir una mezcla de letras mayúsculas, minúsculas, números y caracteres especiales para mayor seguridad.
