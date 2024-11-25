@@ -44,17 +44,24 @@ def procesar_archivo(csv_file):
             telefono = re.search(r'\+57 \d{9}', linea)
             fecha = re.search(r'\d{2}/\d{2}/\d{2}', linea)
             valor = re.search(r'\b\d+(\.\d+)?\b', linea)
-            nombre = re.findall(r'\b[A-Z][a-z]+(?: [A-Z][a-z]+)*\b', linea)
-
-            # Verificar que haya al menos dos nombres en la fila
-            if email and telefono and fecha and valor and len(nombre) >= 2:
-                datos_validos.append({
-                    'Correo electrónico': email.group(),
-                    'Nombre cliente': ' '.join(nombre),  # Unir los nombres si hay más de uno
-                    'Teléfono': telefono.group(),
-                    'Fecha de compra': fecha.group(),
-                    'Valor': valor.group()
-                })
+            
+            # Buscar dos nombres diferentes (si están en columnas separadas)
+            nombres = re.findall(r'\b[A-Z][a-z]+(?: [A-Z][a-z]+)*\b', linea)
+            
+            # Si hay exactamente dos nombres, los asignamos a las columnas correspondientes
+            if len(nombres) >= 2:
+                nombre_1 = nombres[0]
+                nombre_2 = nombres[1]
+                
+                if email and telefono and fecha and valor:
+                    datos_validos.append({
+                        'Correo electrónico': email.group(),
+                        'Nombre cliente 1': nombre_1,
+                        'Nombre cliente 2': nombre_2,
+                        'Teléfono': telefono.group(),
+                        'Fecha de compra': fecha.group(),
+                        'Valor': valor.group()
+                    })
 
         return datos_validos
 
@@ -65,7 +72,6 @@ def procesar_archivo(csv_file):
 def generar_excel(datos_validos):
     df = pd.DataFrame(datos_validos)
     output = BytesIO()
-    # Usar openpyxl como motor para generar el archivo Excel
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Productos')
     output.seek(0)
